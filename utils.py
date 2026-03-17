@@ -80,11 +80,30 @@ def extract_base_station(platform):
     return platform
 
 
-def load_data():
-    df = pd.read_csv("data/sample.csv")
-    stations_df = pd.read_csv("data/stations.csv", header=None, names=["station"])
+def load_data(trip_file=None, stations_file=None):
+    if trip_file is not None:
+        df = pd.read_csv(trip_file)
+    else:
+        df = pd.read_csv("data/sample.csv")
+
+    if stations_file is not None:
+        stations_df = pd.read_csv(stations_file, header=None, names=["station"])
+    else:
+        stations_df = pd.read_csv("data/stations.csv", header=None, names=["station"])
+
     station_order = stations_df["station"].tolist()
     return df, station_order
+
+
+def load_data_from_df(trip_df, stations_df=None):
+    if stations_df is not None:
+        station_order = stations_df["station"].tolist()
+    else:
+        stations_df_default = pd.read_csv(
+            "data/stations.csv", header=None, names=["station"]
+        )
+        station_order = stations_df_default["station"].tolist()
+    return trip_df, station_order
 
 
 def get_direction(destination):

@@ -12,14 +12,14 @@ from utils import (
     get_top_culprits,
     get_recovery_points,
     seconds_to_time,
-    time_to_seconds,
+    seconds_to_hms,
     STATION_SEQUENCE_DOWN,
     STATION_SEQUENCE_UP,
 )
 
 st.set_page_config(
     page_title="Train Delay Analysis Dashboard",
-    page_icon="🚆",
+    page_icon=":train:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -61,27 +61,58 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.title("🚆 Train Delay Analysis Dashboard")
+st.markdown("**West Rail Line (TSW ↔ CEN) Delay Pattern Analysis**")
+
+with st.sidebar:
+    st.header("📁 Data Upload")
+    uploaded_file = st.file_uploader(
+        "Upload Trip Data CSV",
+        type=["csv"],
+        help="Upload your own trip data CSV file (columns: un, Trip, Destination, Platform, Sched. Arr., Sched. Dep., Actual Arr., Actual Dep., Variance)",
+        accept_multiple_files=False,
+        key="trip_data_uploader",
+    )
+
+    use_sample = st.checkbox("Use sample data", value=True, key="use_sample_checkbox")
+
+    if uploaded_file is not None and not use_sample:
+        try:
+            uploaded_df = pd.read_csv(uploaded_file)
+            st.session_state["uploaded_df"] = uploaded_df
+            st.success(f"✅ Loaded {len(uploaded_df)} records from uploaded file")
+        except Exception as e:
+            st.error(f"❌ Error loading file: {e}")
+            if "uploaded_df" in st.session_state:
+                del st.session_state["uploaded_df"]
+    elif use_sample:
+        if "uploaded_df" in st.session_state:
+            del st.session_state["uploaded_df"]
+
+    st.markdown("---")
+    st.header("Filters")
+
+if "uploaded_df" in st.session_state and st.session_state["uploaded_df"] is not None:
+    df_source = st.session_state["uploaded_df"]
+    st.info(f"📊 Analyzing uploaded data: {len(df_source)} records")
+else:
+    df_source = None
+    st.info("📊 Using sample data")
+
 
 @st.cache_data
-def load_and_process_data():
-    df, station_order = load_data()
+def load_and_process_data(_df_source=None):
+    if _df_source is not None:
+        df = _df_source.copy()
+        _, station_order = load_data()
+    else:
+        df, station_order = load_data()
     df_processed = process_data(df, station_order)
     deltas_df = calculate_delay_deltas(df_processed)
     return df_processed, deltas_df, station_order
 
 
-df, deltas_df, station_order = load_and_process_data()
-
-st.title("🚆 Train Delay Analysis Dashboard")
-st.markdown("**West Rail Line (TSW ↔ CEN) Delay Pattern Analysis**")
-st.markdown("""
-**Line Configuration:**
-- **DOWN** (UTR → CEN): UTR → TSW → TWH → KWH → KWF → LAK → MEF → LCK → CSW → SSP → PRE → MOK → YMT → JOR → TST → ADM → CEN
-- **UP** (CEN → UTR): CEN → ADM → TST → JOR → YMT → MOK → PRE → SSP → CSW → LCK → MEF → LAK → KWF → KWH → TWH → TSW → UTR
-""")
-st.markdown("---")
-
-st.sidebar.header("Filters")
+df, deltas_df, station_order = load_and_process_data(df_source)
 
 trips = sorted(df["Trip"].unique().tolist())
 selected_trips = st.sidebar.multiselect("Select Trips", trips, default=trips)
