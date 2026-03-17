@@ -111,7 +111,7 @@ else:
 
 
 @st.cache_data
-def load_and_process_data(_df_source=None, _sample_file=None):
+def load_and_process_data(data_source_key, _df_source=None, _sample_file=None):
     if _df_source is not None:
         df = _df_source.copy()
         _, station_order = load_data()
@@ -125,7 +125,9 @@ def load_and_process_data(_df_source=None, _sample_file=None):
     return df_processed, deltas_df, station_order
 
 
-df, deltas_df, station_order = load_and_process_data(df_source, sample_file)
+df, deltas_df, station_order = load_and_process_data(
+    data_source, df_source, sample_file
+)
 
 trips = sorted(df["Trip"].unique().tolist())
 selected_trips = st.sidebar.multiselect("Select Trips", trips, default=trips)
