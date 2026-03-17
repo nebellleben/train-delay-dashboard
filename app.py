@@ -65,45 +65,58 @@ st.title("🚆 Train Delay Analysis Dashboard")
 st.markdown("**West Rail Line (TSW ↔ CEN) Delay Pattern Analysis**")
 
 with st.sidebar:
-    st.header("📁 Data Upload")
-    uploaded_file = st.file_uploader(
-        "Upload Trip Data CSV",
-        type=["csv"],
-        help="Upload your own trip data CSV file (columns: un, Trip, Destination, Platform, Sched. Arr., Sched. Dep., Actual Arr., Actual Dep., Variance)",
-        accept_multiple_files=False,
-        key="trip_data_uploader",
+    st.header("📁 Data Source")
+
+    data_source = st.radio(
+        "Choose data source:",
+        [
+            "Sample Data 1 (sample.csv)",
+            "Sample Data 2 (sample2.csv)",
+            "Upload CSV File",
+        ],
+        index=0,
+        key="data_source_radio",
     )
 
-    use_sample = st.checkbox("Use sample data", value=True, key="use_sample_checkbox")
-
-    if uploaded_file is not None and not use_sample:
-        try:
-            uploaded_df = pd.read_csv(uploaded_file)
-            st.session_state["uploaded_df"] = uploaded_df
-            st.success(f"✅ Loaded {len(uploaded_df)} records from uploaded file")
-        except Exception as e:
-            st.error(f"❌ Error loading file: {e}")
-            if "uploaded_df" in st.session_state:
-                del st.session_state["uploaded_df"]
-    elif use_sample:
-        if "uploaded_df" in st.session_state:
-            del st.session_state["uploaded_df"]
+    uploaded_file = None
+    if data_source == "Upload CSV File":
+        uploaded_file = st.file_uploader(
+            "Upload Trip Data CSV",
+            type=["csv"],
+            help="Upload your own trip data CSV file (columns: un, Trip, Destination, Platform, Sched. Arr., Sched. Dep., Actual Arr., Actual Dep., Variance)",
+            accept_multiple_files=False,
+            key="trip_data_uploader",
+        )
 
     st.markdown("---")
     st.header("Filters")
 
-if "uploaded_df" in st.session_state and st.session_state["uploaded_df"] is not None:
-    df_source = st.session_state["uploaded_df"]
-    st.info(f"📊 Analyzing uploaded data: {len(df_source)} records")
+if data_source == "Upload CSV File" and uploaded_file is not None:
+    try:
+        df_source = pd.read_csv(uploaded_file)
+        st.info(f"📊 Analyzing uploaded data: {len(df_source)} records")
+        sample_file = None
+    except Exception as e:
+        st.error(f"❌ Error loading file: {e}")
+        df_source = None
+        sample_file = "data/sample.csv"
+elif data_source == "Sample Data 2 (sample2.csv)":
+    df_source = None
+    sample_file = "sample2.csv"
+    st.info("📊 Using sample data 2 (sample2.csv)")
 else:
     df_source = None
-    st.info("📊 Using sample data")
+    sample_file = None
+    st.info("📊 Using sample data 1 (sample.csv)")
 
 
 @st.cache_data
-def load_and_process_data(_df_source=None):
+def load_and_process_data(_df_source=None, _sample_file=None):
     if _df_source is not None:
         df = _df_source.copy()
+        _, station_order = load_data()
+    elif _sample_file is not None:
+        df = pd.read_csv(_sample_file)
         _, station_order = load_data()
     else:
         df, station_order = load_data()
@@ -112,7 +125,7 @@ def load_and_process_data(_df_source=None):
     return df_processed, deltas_df, station_order
 
 
-df, deltas_df, station_order = load_and_process_data(df_source)
+df, deltas_df, station_order = load_and_process_data(df_source, sample_file)
 
 trips = sorted(df["Trip"].unique().tolist())
 selected_trips = st.sidebar.multiselect("Select Trips", trips, default=trips)
