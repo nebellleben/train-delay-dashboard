@@ -864,11 +864,13 @@ if selected_trip_timeline and selected_trip_timeline != 0:
 
         fig_timeline = go.Figure()
 
+        all_times = []
         for idx, (_, row) in enumerate(trip_timeline.iterrows()):
             station = row["base_station"]
             if pd.notna(row["sched_arr_seconds"]) and pd.notna(
                 row["sched_dep_seconds"]
             ):
+                all_times.extend([row["sched_arr_seconds"], row["sched_dep_seconds"]])
                 fig_timeline.add_trace(
                     go.Bar(
                         name=f"{station} (Sched)" if idx == 0 else "",
@@ -884,6 +886,7 @@ if selected_trip_timeline and selected_trip_timeline != 0:
             if pd.notna(row["actual_arr_seconds"]) and pd.notna(
                 row["actual_dep_seconds"]
             ):
+                all_times.extend([row["actual_arr_seconds"], row["actual_dep_seconds"]])
                 fig_timeline.add_trace(
                     go.Bar(
                         name=f"{station} (Actual)" if idx == 0 else "",
@@ -897,11 +900,25 @@ if selected_trip_timeline and selected_trip_timeline != 0:
                     )
                 )
 
+        if all_times:
+            min_time = int(min(all_times) // 300 * 300)
+            max_time = int((max(all_times) // 300 + 1) * 300)
+            tick_vals = list(range(min_time, max_time + 1, 300))
+            tick_text = [seconds_to_hms(v) for v in tick_vals]
+        else:
+            tick_vals = None
+            tick_text = None
+
         fig_timeline.update_layout(
             barmode="overlay",
             height=max(300, len(trip_timeline) * 30),
-            xaxis_title="Time (seconds from midnight)",
+            xaxis_title="Time",
             yaxis_title="Station",
+            xaxis=dict(
+                tickmode="array",
+                tickvals=tick_vals,
+                ticktext=tick_text,
+            ),
             legend=dict(
                 orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
             ),
