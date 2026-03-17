@@ -1,6 +1,6 @@
 # Train Delay Analysis Dashboard
 
-Interactive Streamlit dashboard for analyzing train delay patterns and identifying delay culprits on the West Rail Line (TSW ↔ CEN).
+Interactive Streamlit dashboard for analyzing train delay patterns and identifying delay culprits on the Tsuen Wan Line (TSW ↔ CEN).
 
 ## Features
 
